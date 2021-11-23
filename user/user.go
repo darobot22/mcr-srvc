@@ -2,10 +2,10 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
+	"models"
 	"net/http"
 	"strconv"
 	"time"
@@ -15,26 +15,6 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/rs/cors"
 )
-
-type User struct {
-	Id       int    `json:"Id,omitempty"`
-	Name     string `json:"Name,omitempty"`
-	Password string `json:"Password,omitempty"`
-	Email    string `json:"Email,omitempty"`
-	Phone    string `json:"Phone,omitempty"`
-}
-
-func OpenConnections() *sql.DB {
-	connStr := "host=host.docker.internal port=5432 user=postgres password=fkubifkom10 dbname=postgres sslmode=disable"
-	db, err := sql.Open("postgres", connStr)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	if err := db.Ping(); err != nil {
-		log.Fatalln(err)
-	}
-	return db
-}
 
 var client = redis.NewClient(&redis.Options{
 	Addr:     "host.docker.internal:6379",
@@ -47,8 +27,8 @@ func GetRedis() redis.Client {
 }
 
 func Add(w http.ResponseWriter, r *http.Request) {
-	db := OpenConnections()
-	var user User
+	db := models.OpenConnections()
+	var user models.User
 	err := json.NewDecoder(r.Body).Decode(&user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -68,8 +48,8 @@ func Get(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 	}
 	client := GetRedis()
-	db := OpenConnections()
-	var user User
+	db := models.OpenConnections()
+	var user models.User
 	userJson, err := client.Get(ctx, id).Result()
 	if err == redis.Nil {
 		fmt.Println("Redis not stored")
@@ -89,7 +69,7 @@ func Get(w http.ResponseWriter, r *http.Request) {
 		defer db.Close()
 	} else {
 		fmt.Println("Redis stored")
-		targets := User{}
+		targets := models.User{}
 
 		err := json.Unmarshal([]byte(userJson), &targets)
 		err = json.NewEncoder(w).Encode(targets)
@@ -100,10 +80,10 @@ func Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetAll(w http.ResponseWriter, r *http.Request) {
-	db := OpenConnections()
+	db := models.OpenConnections()
 	usersData, err := db.Query("SELECT * FROM users")
-	users := []User{}
-	var user User
+	users := []models.User{}
+	var user models.User
 	for usersData.Next() {
 		err = usersData.Scan(&user.Id, &user.Name, &user.Password, &user.Email, &user.Phone)
 		if err != nil {
@@ -127,9 +107,9 @@ func Edit(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		w.WriteHeader(http.StatusBadRequest)
 	}
-	db := OpenConnections()
+	db := models.OpenConnections()
 	uid, err := strconv.Atoi(id)
-	var user User
+	var user models.User
 	err = json.NewDecoder(r.Body).Decode(&user)
 	_, err = db.Exec("UPDATE users SET name = $1, password = $2, email = $3, phone = $4 where id = $5",
 		user.Name, user.Password, user.Email, user.Phone, uid)
@@ -144,7 +124,7 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		w.WriteHeader(http.StatusBadRequest)
 	}
-	db := OpenConnections()
+	db := models.OpenConnections()
 	uid, err := strconv.Atoi(id)
 	_, err = db.Exec("DELETE FROM users where id = $1", uid)
 	if err != nil {

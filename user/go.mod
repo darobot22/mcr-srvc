@@ -8,9 +8,12 @@ require (
 	github.com/lib/pq v1.10.2
 	github.com/rs/cors v1.8.0
 	github.com/gorilla/handlers v1.5.1
+	models v1.0.0
 )
 
 require (
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 )
+
+replace models => C:/Users/User/go/src/proj/models

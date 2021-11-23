@@ -1,10 +1,10 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
+	"models"
 	"net/http"
 	"strconv"
 	"time"
@@ -15,43 +15,14 @@ import (
 	"github.com/rs/cors"
 )
 
-type ServiceHistory struct {
-	Id            int
-	ServiceCode   string
-	ServiceName   string
-	UserId        int
-	UserName      string
-	CreateDate    string
-	ResultData    string
-	ExecutionDate string
-}
-
-type RequestedService struct {
-	UserId    int
-	ServiceId int
-	Params    string
-}
-
-func OpenConnections() *sql.DB {
-	connStr := "host=host.docker.internal port=5432 user=postgres password=fkubifkom10 dbname=postgres sslmode=disable"
-	db, err := sql.Open("postgres", connStr)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	if err := db.Ping(); err != nil {
-		log.Fatalln(err)
-	}
-	return db
-}
-
 func HistoryGetAll(w http.ResponseWriter, r *http.Request) {
-	db := OpenConnections()
+	db := models.OpenConnections()
 	serviceData, err := db.Query("SELECT * FROM servicehistory")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadGateway)
 	}
-	services := []ServiceHistory{}
-	var service ServiceHistory
+	services := []models.ServiceHistory{}
+	var service models.ServiceHistory
 	for serviceData.Next() {
 		err := serviceData.Scan(&service.Id, &service.ServiceCode, &service.ServiceName, &service.UserId,
 			&service.UserName, &service.CreateDate, &service.ResultData, &service.ExecutionDate)
@@ -74,8 +45,8 @@ func HistoryEdit(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 	}
 	sid, err := strconv.Atoi(id)
-	db := OpenConnections()
-	var servicehistory ServiceHistory
+	db := models.OpenConnections()
+	var servicehistory models.ServiceHistory
 	err = json.NewDecoder(r.Body).Decode(&servicehistory)
 	db.Exec("UPDATE servicehistory SET resultdata = $1, executiondate = $2 WHERE id = $3",
 		servicehistory.ResultData, servicehistory.ExecutionDate, sid)
@@ -94,10 +65,10 @@ func HistoryGetUser(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
-	db := OpenConnections()
+	db := models.OpenConnections()
 	serviceData, err := db.Query("SELECT * FROM servicehistory WHERE userid = $1", sid)
-	services := []ServiceHistory{}
-	var service ServiceHistory
+	services := []models.ServiceHistory{}
+	var service models.ServiceHistory
 	for serviceData.Next() {
 		err := serviceData.Scan(&service.Id, &service.ServiceCode, &service.ServiceName, &service.UserId,
 			&service.UserName, &service.CreateDate, &service.ResultData, &service.ExecutionDate)
@@ -115,11 +86,11 @@ func HistoryGetUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func saveService(srvc string) {
-	var rqsrvcs RequestedService
+	var rqsrvcs models.RequestedService
 	err := json.Unmarshal([]byte(srvc), &rqsrvcs)
-	var historyService ServiceHistory
+	var historyService models.ServiceHistory
 	historyService.UserId = rqsrvcs.UserId
-	db := OpenConnections()
+	db := models.OpenConnections()
 	serviceData := db.QueryRow("SELECT name,code FROM services WHERE id = $1", rqsrvcs.ServiceId)
 	if err != nil {
 		return

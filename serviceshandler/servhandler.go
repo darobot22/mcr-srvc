@@ -4,16 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"models"
 	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 )
-
-type RequestedService struct {
-	UserId    int
-	ServiceId int
-	Params    string
-}
 
 func ReceiveAndHandle() {
 	c, err := kafka.NewConsumer(&kafka.ConfigMap{
@@ -32,7 +27,7 @@ func ReceiveAndHandle() {
 		msg, err := c.ReadMessage(-1)
 		if err == nil {
 			fmt.Printf("Message on %s: %s\n", msg.TopicPartition, string(msg.Value))
-			rqsrvcs := RequestedService{}
+			rqsrvcs := models.RequestedService{}
 			err = json.Unmarshal([]byte(msg.Value), &rqsrvcs)
 			rand.Seed(time.Now().UnixNano())
 			result := rand.Float32() < 0.5
@@ -51,7 +46,7 @@ func ReceiveAndHandle() {
 	c.Close()
 }
 
-func sendMessageToHis(rqSrvc RequestedService) {
+func sendMessageToHis(rqSrvc models.RequestedService) {
 	p, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": "kafka:9092"})
 	if err != nil {
 		panic(err)

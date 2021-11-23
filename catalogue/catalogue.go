@@ -1,10 +1,10 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
+	"models"
 	"net/http"
 	"strconv"
 
@@ -15,19 +15,7 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type Service struct {
-	Id   int    `json:"Id,omitempty"`
-	Name string `json:"Name,omitempty"`
-	Code string `json:"Code,omitempty"`
-}
-
-type RequestedService struct {
-	UserId    int
-	ServiceId int
-	Params    string
-}
-
-func sendMessageToHan(rqSrvc RequestedService) {
+func sendMessageToHan(rqSrvc models.RequestedService) {
 	p, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": "kafka:9092"})
 	if err != nil {
 		panic(err)
@@ -53,21 +41,9 @@ func sendMessageToHan(rqSrvc RequestedService) {
 	return
 }
 
-func OpenConnections() *sql.DB {
-	connStr := "host=host.docker.internal port=5432 user=postgres password=fkubifkom10 dbname=postgres sslmode=disable"
-	db, err := sql.Open("postgres", connStr)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	if err := db.Ping(); err != nil {
-		log.Fatalln(err)
-	}
-	return db
-}
-
 func Add(w http.ResponseWriter, r *http.Request) {
-	db := OpenConnections()
-	var service Service
+	db := models.OpenConnections()
+	var service models.Service
 	err := json.NewDecoder(r.Body).Decode(&service)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -86,7 +62,7 @@ func Delete(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 	}
 	sid, err := strconv.Atoi(id)
-	db := OpenConnections()
+	db := models.OpenConnections()
 	db.Exec("DELETE FROM services where id = $1", sid)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -100,8 +76,8 @@ func Edit(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 	}
 	sid, err := strconv.Atoi(id)
-	db := OpenConnections()
-	var service Service
+	db := models.OpenConnections()
+	var service models.Service
 	err = json.NewDecoder(r.Body).Decode(&service)
 	db.Exec("UPDATE services SET name = $1, code = $2 WHERE id = $3",
 		service.Name, service.Code, sid)
@@ -116,8 +92,8 @@ func Get(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		w.WriteHeader(http.StatusBadRequest)
 	}
-	db := OpenConnections()
-	var service Service
+	db := models.OpenConnections()
+	var service models.Service
 	sid, err := strconv.Atoi(id)
 	serviceData := db.QueryRow("SELECT * FROM services WHERE id = $1", sid)
 	if err != nil {
@@ -129,13 +105,13 @@ func Get(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetAll(w http.ResponseWriter, r *http.Request) {
-	db := OpenConnections()
+	db := models.OpenConnections()
 	serviceData, err := db.Query("SELECT * FROM services")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadGateway)
 	}
-	services := []Service{}
-	var service Service
+	services := []models.Service{}
+	var service models.Service
 	for serviceData.Next() {
 		err := serviceData.Scan(&service.Id, &service.Name, &service.Code)
 		if err != nil {
@@ -158,7 +134,7 @@ func Request(w http.ResponseWriter, r *http.Request) {
 	}
 	uid := r.FormValue("uid")
 
-	var rqSrvc RequestedService
+	var rqSrvc models.RequestedService
 	var err error
 	rqSrvc.Params = "TODO"
 	rqSrvc.UserId, err = strconv.Atoi(uid)

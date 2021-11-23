@@ -70,7 +70,6 @@ export default defineComponent({
             const [error, res] = await getAllServices()
             if (error) console.error(error)
             else {
-                console.log(res)
                 res.split('\n').map(s=>this.services.push(JSON.parse(s)))
             }
         },

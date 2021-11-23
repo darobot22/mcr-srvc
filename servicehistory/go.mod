@@ -1,4 +1,4 @@
-module proj/user
+module proj/servicehistory
 
 go 1.17
 
@@ -7,6 +7,7 @@ require (
 	github.com/lib/pq v1.10.2
 	github.com/rs/cors v1.8.0
     github.com/gorilla/handlers v1.5.1
+    models v1.0.0
 )
 
 require (
@@ -14,3 +15,5 @@ require (
 	github.com/confluentinc/confluent-kafka-go v1.7.0
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 )
+
+replace models => C:/Users/User/go/src/proj/models
