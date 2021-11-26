@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: usersrvc
+spec:
+  containers:
+  - name: usersrvc-container
+    image: usersrvc:1.0.0
+    imagePullPolicy: Never
+    - containerPort: 1234

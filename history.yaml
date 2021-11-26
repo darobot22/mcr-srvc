@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: historysrvc
+spec:
+  containers:
+  - name: historysrvc-container
+    image: historysrvc:1.0.0
+    imagePullPolicy: Never
+    - containerPort: 1236

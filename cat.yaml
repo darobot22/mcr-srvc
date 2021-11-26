@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: cataloguesrvc
+spec:
+  containers:
+  - name: cataloguesrvc-container
+    image: hcataloguesrvc:1.0.0
+    imagePullPolicy: Never
+    - containerPort: 1235
