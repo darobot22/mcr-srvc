@@ -1,13 +1,16 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"models"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/gorilla/mux"
@@ -20,6 +23,7 @@ func HistoryGetAll(w http.ResponseWriter, r *http.Request) {
 	serviceData, err := db.Query("SELECT * FROM servicehistory")
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadGateway)
+		log.Error(err)
 	}
 	services := []models.ServiceHistory{}
 	var service models.ServiceHistory
@@ -28,6 +32,7 @@ func HistoryGetAll(w http.ResponseWriter, r *http.Request) {
 			&service.UserName, &service.CreateDate, &service.ResultData, &service.ExecutionDate)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadGateway)
+			log.Error(err)
 		}
 		services = append(services, service)
 	}
@@ -52,6 +57,7 @@ func HistoryEdit(w http.ResponseWriter, r *http.Request) {
 		servicehistory.ResultData, servicehistory.ExecutionDate, sid)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		log.Error(err)
 	}
 }
 
@@ -64,6 +70,7 @@ func HistoryGetUser(w http.ResponseWriter, r *http.Request) {
 	sid, err := strconv.Atoi(id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		log.Error(err)
 	}
 	db := models.OpenConnections()
 	serviceData, err := db.Query("SELECT * FROM servicehistory WHERE userid = $1", sid)
@@ -75,6 +82,7 @@ func HistoryGetUser(w http.ResponseWriter, r *http.Request) {
 
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusBadGateway)
+			log.Error(err)
 		}
 		services = append(services, service)
 	}
@@ -141,11 +149,29 @@ func HandleHistory() {
 	c.Close()
 }
 
+func HistorySearch(w http.ResponseWriter, r *http.Request) {
+	query := r.FormValue("query")
+	searchRequest := fmt.Sprintf(`{"query": {"multi_match": {"query": "%s", "fields": ["title", "body"]}}}`,
+		query)
+	es := models.GetEsCLient()
+	res, err := es.Search(
+		es.Search.WithContext(context.Background()),
+		es.Search.WithIndex("servicehistory"),
+		es.Search.WithBody(strings.NewReader(searchRequest)),
+		es.Search.WithPretty(),
+	)
+	if err != nil {
+		panic(err)
+	}
+	json.NewEncoder(w).Encode(res)
+}
+
 func main() {
 	ro := mux.NewRouter().StrictSlash(true)
 	ro.HandleFunc("/history/", HistoryGetAll)
 	ro.HandleFunc("/history/{id}", HistoryGetUser)
 	ro.HandleFunc("/history/edit/{id}", HistoryEdit)
+	ro.HandleFunc("/history/search", HistorySearch).Queries("query", "{query}")
 
 	c := cors.New(cors.Options{
 		AllowedOrigins:   []string{"http://localhost:8080"},

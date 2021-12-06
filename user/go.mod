@@ -9,6 +9,7 @@ require (
 	github.com/rs/cors v1.8.0
 	github.com/gorilla/handlers v1.5.1
 	models v1.0.0
+	github.com/sirupsen/logrus v1.8.1
 )
 
 require (
