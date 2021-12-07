@@ -199,5 +199,5 @@ func main() {
 	log.SetOutput(f)
 
 	go HandleHistory()
-	log.Fatal(http.ListenAndServe(":1236", handler)).Info("Server started")
+	log.Fatal(http.ListenAndServe(":1236", handler))
 }
