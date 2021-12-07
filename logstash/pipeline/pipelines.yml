@@ -1,0 +1,2 @@
+- pipeline.id: sync-history-pipeline
+  path.config: "/proj/logstash/config/history.conf"
