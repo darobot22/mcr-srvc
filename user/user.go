@@ -4,13 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"github.com/go-redis/redis/v8"
 	"models"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
-	"github.com/go-redis/redis/v8"
+	log "github.com/sirupsen/logrus"
+
 	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 	"github.com/rs/cors"
@@ -156,5 +158,12 @@ func main() {
 	})
 
 	handler := c.Handler(ro)
+	log.SetFormatter(&log.JSONFormatter{})
+	f, err := os.OpenFile("servicehistory.log", os.O_WRONLY|os.O_CREATE, 0755)
+	if err != nil {
+		log.Error(err)
+	}
+	defer f.Close()
+	log.SetOutput(f)
 	log.Fatal(http.ListenAndServe(":1234", handler))
 }

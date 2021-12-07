@@ -3,10 +3,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"models"
 	"net/http"
+	"os"
 	"strconv"
+
+	log "github.com/sirupsen/logrus"
 
 	"github.com/rs/cors"
 
@@ -173,6 +175,12 @@ func main() {
 	})
 
 	handler := c.Handler(ro)
-
+	log.SetFormatter(&log.JSONFormatter{})
+	f, err := os.OpenFile("catalogue.log", os.O_WRONLY|os.O_CREATE, 0755)
+	if err != nil {
+		log.Error(err)
+	}
+	defer f.Close()
+	log.SetOutput(f)
 	log.Fatal(http.ListenAndServe(":1235", handler))
 }

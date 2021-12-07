@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"models"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -142,7 +143,7 @@ func HandleHistory() {
 			saveService(srvc)
 		} else {
 			// The client will automatically try to recover from all errors.
-			fmt.Printf("Consumer error: %v (%v)\n", err, msg)
+			log.Warn("Consumer error: %v (%v)\n", err, msg)
 		}
 	}
 
@@ -151,7 +152,8 @@ func HandleHistory() {
 
 func HistorySearch(w http.ResponseWriter, r *http.Request) {
 	query := r.FormValue("query")
-	searchRequest := fmt.Sprintf(`{"query": {"multi_match": {"query": "%s", "fields": ["title", "body"]}}}`,
+	searchRequest := fmt.Sprintf(`{"query": {"multi_match": {"query": "%s", "fields": 
+	["id", "servicecode", "servicename", "userid","username","createdate","reultdata",executiondate]}}}`,
 		query)
 	es := models.GetEsCLient()
 	res, err := es.Search(
@@ -188,7 +190,14 @@ func main() {
 	})
 
 	handler := c.Handler(ro)
+	log.SetFormatter(&log.JSONFormatter{})
+	f, err := os.OpenFile("servicehistory.log", os.O_WRONLY|os.O_CREATE, 0755)
+	if err != nil {
+		log.Error(err)
+	}
+	defer f.Close()
+	log.SetOutput(f)
 
 	go HandleHistory()
-	log.Fatal(http.ListenAndServe(":1236", handler))
+	log.Fatal(http.ListenAndServe(":1236", handler)).Info("Server started")
 }
